@@ -1,0 +1,323 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reset.css">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/blood.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/monokai.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h2>Typescript 3.7</h2>
+				</section>
+				<section>
+						<h2>Agenda</h2>
+						<ol>
+								<li class="fragment">Optional Chaining</li>
+								<li class="fragment">Nullish Coallescing</li>
+								<li class="fragment">Assertion Functions</li>
+								<li class="fragment">Recursive Type Aliases</li>
+								<li class="fragment">Top-level await</li>
+						</ol>
+				</section>
+				<section>
+					<section>
+								<h2>Optional Chaining</h2>
+					</section>
+					<section>
+								<strong>
+									It solves two <a href="https://github.com/microsoft/TypeScript/issues/16">issues</a>:
+								</strong>
+								<ol>
+										<li class="fragment fade-right">
+											Nested conditional checks in nested nullable properties
+										</li>
+										<li class="fragment fade-right">
+											Falsy, Truthy issues during checks mentioned in point #1
+										</li>
+								<br>
+					</section>
+					<section>
+								<p>Instead of nested conditions, or many using <code>&&</code> we use <code>?</code></p>
+								<pre><code class="hljs" data-trim data-line-numbers="2,4">
+									// The logical and operator way
+									x && x.y && x.y.z
+									// The optional chaining way
+									x?.y?.z
+								</code></pre>
+					</section>
+					<!--<section data-background="https://media.giphy.com/media/KCpn48TGFON60zZo9a/source.gif">
+							<p>Let your imagination fly free! </p>
+					</section>-->
+					<section>
+						<pre><code class="hljs" data-trim data-line-numbers="2-4,7-9">
+								// Before
+								if (foo && foo.bar && foo.bar.baz) {
+										// ...
+								}
+								
+								// After-ish
+								if (foo?.bar?.baz) {
+										// ...
+								}
+						</code></pre>
+					</section>
+					<section>
+							<pre><code class="hljs" data-trim data-line-numbers="5-7">
+	/**
+	* Get the first element of the array if we have an array.
+	* Otherwise return undefined.
+	*/
+	// 
+	function tryGetFirstElement<&#84;>(arr?: T[]) {
+		return arr?.[0];
+		// equivalent to
+		// return (arr === null || arr === undefined) ?
+		// undefined :
+		// arr[0];
+	}
+							</code></pre>
+					</section>
+					<section>
+							<p>Optional chaining consider as no value only two <code>null | undefined</code></p>
+							<pre><code class="hljs" data-trim data-line-numbers="2-5,8-11">
+									// Before
+									function getLengthOfStr(x) {
+										return x && x.s && x.s.length; 
+									}
+									getLengthOfStr({s: ''}) // returns empty string!
+
+									// After-ish
+									function getLengthOfStr(x) {
+										return x?.s?.length; 
+									}
+									getLengthOfStr({s: ''}) // return correctly 0
+							</code></pre>
+					</section>
+				</section>
+				<section>
+						<h2>Nullish Coallescing</h2>
+				</section>
+				<section>
+						<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+							<p>
+								Introduce the <code>??</code> operator to “fall back” to a default value when dealing with <code>null</code> or <code>undefined</code>
+							</p>							
+						</section>
+						<section>
+								<pre>
+										<code class="hljs" data-trim data-line-numbers="2,4">
+										// Before
+										let x = (foo !== null && foo !== undefined) ? foo : bar();
+										// Using Nullish Coallescing
+										let x = foo ?? bar();
+									</code>
+								</pre>
+						</section>
+						<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+							<p>It solves common issue using <code>||</code> operator</p>
+						</section>
+						<section>
+							<p>The <code>??</code> operator can replace uses of <code>||</code> when trying to use a default value</p>
+								<pre>
+										<code class="hljs" data-trim data-line-numbers="1-5,9-12">
+										function initializeAudio() {
+											let volume = localStorage.volume || 0.5
+									
+											// ...
+										}
+										// When localStorage.volume is set to 0, 
+										// the page will set the volume to 0.5 which is unintended
+
+										function initializeAudio() {
+											let volume = localStorage.volume ?? 0.5
+									
+											// ...
+										}
+										// If localStorage.volume is set to 0, it returns 0
+									</code>
+								</pre>
+						</section>
+						<section>
+								<img style="width: 450px" src="https://media.giphy.com/media/nXxOjZrbnbRxS/source.gif">
+						</section>
+				</section>
+				<section>
+					<h2>Assertion Functions</h2>
+				</section>
+				<section>
+					<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+						<h3>Assert()</h3>
+						<p>Functions that <code>throw</code> an error if something unexpected happened</p>
+					</section>
+					<section>
+						<h3>There are two types of Assert()</h3>
+					</section>
+					<section>
+						<p>1. Ensures that whatever condition is being checked must be true for the remainder of the containing scope</p>
+						<pre>
+							<code class="hljs" data-trim data-line-numbers="4-9">
+								// With TS 3.7
+
+								// Asserts that input is truthy, throwing immediately if not:
+								function assert(input: any): asserts input { // &#60;-- not a typo
+									if (!input) throw new Error('Not a truthy value');
+								}
+								
+								declare const x: number | string | undefined;
+								assert(x); // Narrows x to number | string
+							</code>
+						</pre>
+					</section>
+					<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+							<p>2. The <code>assert x is T</code> form indicates that the function returns only when x is of type <code>T</code></p>
+							<pre>
+								<code class="hljs" data-trim data-line-numbers="2-9">
+								// Asserts that input is string
+								function assertIsString(val: any): asserts val is string {
+									if (typeof val !== "string") {
+										throw new AssertionError("Not a string!");
+									}
+								}
+
+								declare const x: number | string | undefined;
+								assert(x); // Narrows x to string
+								</code>
+							</pre>
+					</section>
+					<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+						<p>Similar to type guards, but you must return boolean in type guards and you continue with the execution</p>
+					</section>
+				</section>
+				<section>
+					<h2>Recursive Type Aliases</h2>
+				</section>
+				<section>
+						<section>
+								<pre>
+									<code>
+			type Foo = Foo;
+									</code>
+								</pre>
+								<img style="width:250px" src="https://media.giphy.com/media/SqmkZ5IdwzTP2/source.gif">
+							</section>
+							<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+								<p>Type aliases can't be circular, but interfaces can.</p>
+								<p>That was before the version 3.7</p>
+							</section>
+							<section>
+									<h3>BEFORE</h3>
+									<pre>
+										<code class="hljs" data-trim data-line-numbers="1-12">
+			type JSONValue =
+			| string
+			| number
+			| boolean
+			| JSONObject
+			| JSONArray;
+			
+			interface JSONObject {
+					[x: string]: JSONValue;
+			}
+			
+			interface JSONArray extends Array&#60;JSONValue> { }
+										</code>
+										</pre>
+								</section>
+								<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+										<h3>NOW</h3>
+										<pre>
+											<code class="hljs" data-trim data-line-numbers="3-8">
+			// With TS 3.7:
+			
+			type JSONValue =
+				| string
+				| number
+				| boolean
+				| { [x: string]: JSONValue }
+				| Array&#60;JSONValue>;
+						</code>
+						</pre>
+					</section>
+				</section>
+				<section>
+					<h2>Top-Level Await</h2>
+				</section>
+				<section>
+
+					<section>
+	<p>Async/await is amazing, and makes promises dramatically cleaner to use.</p>
+	
+			<p>Unfortunately though, you can't (couldn't) use them at the top level.</p>
+					</section>
+					<section>
+						<pre>
+							<code class="hljs" data-trim data-line-numbers="3-8">
+							// Before:
+	
+							async function doEverything() {
+								...
+								const response = await fetch('http://example.com');
+								...
+							}
+							doEverything(); // &#60;- eugh (could use an IIFE instead, but even more eugh)
+							</code>
+						</pre>
+					</section>
+					<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+						<p>With top-level await</p>
+							<pre>
+								<code class="hljs" data-trim data-line-numbers="3-8">
+								// Now:
+		
+	// With TS 3.7:
+	
+	// Your script:
+	...
+	const response = await fetch('http://example.com');
+	...
+								</code>
+							</pre>
+						</section>
+				</section>
+				<section data-background="https://media.giphy.com/media/JTJ7yHjdYsfUmyMgZD/source.gif">
+					
+				</section>
+			</div>
+		</div>
+
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>
